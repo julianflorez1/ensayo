@@ -1,8 +1,5 @@
-//ver los datos del explain plan
-
 select * from SYS.PLAN_TABLE$
 
-// Crear una tabla 
 create table  test_case (
 col_pk integer not null,
 col_i1 integer not null,
@@ -11,8 +8,6 @@ col_c1 varchar2(100) not null,
 col_i2 integer not null,
 col_d2 date not null,
 col_c2 varchar2(100) not null );
-
-//Crear una funcion
 
 create or replace function repeat (c char, n integer) return varchar
 IS 
@@ -24,17 +19,29 @@ begin
   return (s);
 end
 
-// crear un procedimiento 
 declare 
 row_count integer := 1000000;
 begin
   for i in 1 .. row_count loop
-    insert into tesr_case
+    insert into test_case
       values (i, mod (i,100), sysdate-mod(i,100),
-              repeat(substr('ABCDEFGHIJ', mod(i,10),1),10)mod(i,100),
-              sysdate-mod(i,100), repeat(substr('ABCDEFGHIJ', mod(i,10),1),10));
+              repeat(substr('ABCDEFGHIJ', mod(i,10),1),10), 
+              mod(i,100), sysdate-mod(i,100), 
+              repeat(substr('ABCDEFGHIJ', mod(i,10),1),10)
+              );
+              
       if (mod(i,100) = 0) then
           commit;
         end if;
       end loop;
     end;
+    
+    explain plan set statement_ID = 'bad2' for
+    select * from test_case
+    where col_d2 = (select min(col_d2) from test_case
+    where col_pk <= 1000 or col_pk > 99000);
+    
+    select * from table (DBMS_xplan.display('plan_table', 'bad2','typical'));
+    
+    alter table test_case add CONSTRAINT test_case_pk PRIMARY KEY (col_pk);
+    
